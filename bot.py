@@ -1078,48 +1078,54 @@ async def send(ctx, addy, value):
         await ctx.message.delete()
         value = float(value.strip('$'))
         url = "https://api.tatum.io/v3/litecoin/transaction"
-        
-        r = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=usd&vs_currencies=ltc")
+
+        r = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd")
         r.raise_for_status()
-        usd_price = r.json()['usd']['ltc']
+        usd_price = r.json()['litecoin']['usd']
         topay = usd_price * value
-        
+
         payload = {
-        "fromAddress": [
-            {
-                "address": ltc_addy,
-                "privateKey": ltc_priv_key
-            }
-        ],
-        "to": [
-            {
-                "address": addy,
-                "value": round(topay, 8)
-            }
-        ],
-        "fee": "0.00005",
-        "changeAddress": ltc_addy
-    }
+            "fromAddress": [
+                {
+                    "address": ltc_addy,
+                    "privateKey": ltc_priv_key
+                }
+            ],
+            "to": [
+                {
+                    "address": addy,
+                    "value": round(topay, 8)
+                }
+            ],
+            "fee": "0.00005",
+            "changeAddress": ltc_addy
+        }
         headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "x-api-key": api_key
-    }
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-api-key": api_key
+        }
 
-response = requests.post(url, json=payload, headers=headers)
-response_data = response.json()
-await ctx.send(
-    content=(
-        f"🍷 **Successfully Sent {value}$**\n"
-        f"🍷 **From** {ltc_addy}\n"
-        f"🍷 **To** {addy}\n"
-        f"🍷 **Transaction Id** :- https://live.blockcypher.com/ltc/tx/{response_data['txId']}"
-    )
-)
-print(f"{reset}[ {cyan}{time_rn}{reset} ] {gray}({green}+{gray}) {pretty}{Fore.GREEN}LTC SEND SUCCESS✅ ")
+        response = requests.post(url, json=payload, headers=headers)
+        response_data = response.json()
+        await ctx.send(
+            content=(
+                f"🍷 **Successfully Sent {value}$**\n"
+                f"🍷 **From** {ltc_addy}\n"
+                f"🍷 **To** {addy}\n"
+                f"🍷 **Transaction Id** :- https://live.blockcypher.com/ltc/tx/{response_data['txId']}"
+            )
+        )
+        print(f"{reset}[ {cyan}{time_rn}{reset} ] {gray}({green}+{gray}) {pretty}{Fore.GREEN}LTC SEND SUCCESS✅ ")
 
-   except Exception as e:
-    await ctx.send(content=f"🍷 **Failed to send LTC Because** :- {response_data.get('cause', str(e))}")
+    except Exception as e:
+        # lấy thông tin lỗi từ response nếu có
+        cause = None
+        try:
+            cause = response_data.get("cause")
+        except:
+            pass
+        await ctx.send(content=f"🍷 **Failed to send LTC Because** :- {cause or str(e)}")
 
 
 @notj.command(aliases=['purge, clear'])
