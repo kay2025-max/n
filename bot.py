@@ -1106,12 +1106,21 @@ async def send(ctx, addy, value):
         "x-api-key": api_key
     }
 
-        response = requests.post(url, json=payload, headers=headers)
-        response_data = response.json()
-        await ctx.send(content=f"🍷 **Successfully Sent {value}$**\n🍷 **From** {ltc_addy}\n🍷 **To** {addy}\n🍷 **Transaction Id** :- https://live.blockcypher.com/ltc/tx/{response_data["txId"]}")
-        print(f"{reset}[ {cyan}{time_rn}{reset} ] {gray}({green}+{gray}) {pretty}{Fore.GREEN}LTC SEND SUCCESS✅ ")
-    except:
-        await ctx.send(content=f"🍷 **Failed to send LTC Because** :- {response_data["cause"]}")
+response = requests.post(url, json=payload, headers=headers)
+response_data = response.json()
+await ctx.send(
+    content=(
+        f"🍷 **Successfully Sent {value}$**\n"
+        f"🍷 **From** {ltc_addy}\n"
+        f"🍷 **To** {addy}\n"
+        f"🍷 **Transaction Id** :- https://live.blockcypher.com/ltc/tx/{response_data['txId']}"
+    )
+)
+print(f"{reset}[ {cyan}{time_rn}{reset} ] {gray}({green}+{gray}) {pretty}{Fore.GREEN}LTC SEND SUCCESS✅ ")
+
+   except Exception as e:
+    await ctx.send(content=f"🍷 **Failed to send LTC Because** :- {response_data.get('cause', str(e))}")
+
 
 @notj.command(aliases=['purge, clear'])
 async def clear(ctx, times: int):
