@@ -19,9 +19,8 @@ bot = commands.Bot(command_prefix='g', intents=intents)
 # Data storage
 DATA_FILE = 'bot_data.json'
 LEVEL_ANNOUNCE_CHANNEL = 1407953599085936691
-LOG_CHANNEL =1407631967658180670 # Set this to your log channel ID
-WELCOME_CHANNEL = 1407878136737173524  # Welcome channel ID
-WELCOME_ROLE = 1407879478075461753     # Role to assign to new members
+LOG_CHANNEL = 1407631967658180670 # Set this to your log channel ID
+WELCOME_CHANNEL = 1407400444900147305  # Welcome channel ID
 
 # Anti-spam tracking
 user_join_times = defaultdict(deque)
@@ -91,22 +90,7 @@ async def add_xp(user_id, xp_amount):
 async def on_ready():
     print(f'{bot.user} đã sẵn sàng!')
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
 
-    # Add XP for messages
-    await add_xp(message.author.id, 5)
-
-    # Update message count
-    data = load_data()
-    user_data = get_user_data(message.author.id)
-    user_data['messages'] += 1
-    data['users'][str(message.author.id)] = user_data
-    save_data(data)
-
-    await bot.process_commands(message)
 
 # Daily check-in
 @bot.command(name='daily')
@@ -370,10 +354,21 @@ async def rock_paper_scissors(ctx, choice=None):
         user_data = get_user_data(ctx.author.id)
         user_data['games_won'] += 1
     else:
-        result = "💀 BẠN THUA!"
-        coins_change = -10
-        color = 0xFF6B6B
-        result_desc = f"{bot_choice.title()} đánh bại {user_choice}!"
+        # 3% chance to turn loss into win for better user experience
+        luck_roll = random.randint(1, 100)
+        if luck_roll <= 3:
+            result = "🍀 MAY MẮN THẮNG!"
+            coins_change = 30
+            color = 0x00FF7F
+            result_desc = f"May mắn! {user_choice.title()} may mắn đánh bại {bot_choice}!"
+
+            user_data = get_user_data(ctx.author.id)
+            user_data['games_won'] += 1
+        else:
+            result = "💀 BẠN THUA!"
+            coins_change = -10
+            color = 0xFF6B6B
+            result_desc = f"{bot_choice.title()} đánh bại {user_choice}!"
 
     # Update user data
     user_data = get_user_data(ctx.author.id)
@@ -996,6 +991,173 @@ async def user_info(ctx, member: discord.Member = None):
 
     await ctx.send(embed=embed)
 
+# Cash give command
+@bot.command(name='give', aliases=['cashgive'])
+async def give_cash(ctx, member: discord.Member = None, amount: int = None):
+    # If only member is provided, show their current balance
+    if member is not None and amount is None:
+        user_data = get_user_data(member.id)
+        embed = discord.Embed(
+            title="💰 XEM SỐ DƯ VÀNG",
+            description="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                       f"💎 **Số dư của {member.display_name}**\n"
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            color=0xFFD700
+        )
+        embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+
+        embed.add_field(
+            name="💰 Vàng hiện tại",
+            value=f"```yaml\n{user_data['coins']:,} 🪙```",
+            inline=True
+        )
+
+        embed.add_field(
+            name="⭐ Level",
+            value=f"```yaml\n{user_data['level']} ⭐```",
+            inline=True
+        )
+
+        embed.add_field(
+            name="✨ Kinh nghiệm",
+            value=f"```yaml\n{user_data['xp']:,} XP```",
+            inline=True
+        )
+
+        embed.add_field(
+            name="🎮 Thống kê game",
+            value=f"**Thắng:** {user_data['games_won']}\n"
+                  f"**Tổng:** {user_data['games_played']}\n"
+                  f"**Tỷ lệ:** {(user_data['games_won']/user_data['games_played']*100):.1f}%" if user_data['games_played'] > 0 else "**Chưa chơi game nào**",
+            inline=False
+        )
+
+        embed.set_footer(
+            text=f"🎪 Yêu cầu bởi {ctx.author.display_name}",
+            icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url
+        )
+
+        await ctx.send(embed=embed)
+        return
+
+    if member is None or amount is None:
+        embed = discord.Embed(
+            title="💎 CASH GIVE - HƯỚNG DẪN",
+            description="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                       "🎪 **Cách sử dụng:**\n"
+                       "```yaml\n"
+                       "ggive @user          - Xem số xu hiện tại\n"
+                       "ggive @user 1000     - Tặng 1000 vàng\n"
+                       "gcashgive @user 500  - Tặng 500 vàng\n"
+                       "gcash @user          - Xem số xu\n"
+                       "```\n"
+                       "✅ **Tất cả thành viên đều có thể sử dụng**\n"
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            color=0x3498DB
+        )
+        embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/788120095034671104.gif")
+        embed.add_field(
+            name="📋 Thông số",
+            value="• **@user**: Người cần kiểm tra/nhận vàng\n• **amount**: Số vàng để tặng\n• **Bỏ trống amount để xem số dư**",
+            inline=False
+        )
+        await ctx.send(embed=embed)
+        return
+
+    if amount == 0:
+        embed = discord.Embed(
+            title="❌ SỐ LƯỢNG KHÔNG HỢP LỆ",
+            description="🔢 **Vui lòng nhập số vàng khác 0!**",
+            color=0xFF6B6B
+        )
+        await ctx.send(embed=embed)
+        return
+
+    # Get user data
+    user_data = get_user_data(member.id)
+    old_coins = user_data['coins']
+    user_data['coins'] += amount
+
+    # Prevent negative coins
+    if user_data['coins'] < 0:
+        user_data['coins'] = 0
+
+    # Save data
+    data = load_data()
+    data['users'][str(member.id)] = user_data
+    save_data(data)
+
+    # Determine action type and color
+    if amount > 0:
+        action_type = "💰 TẶNG VÀNG"
+        action_emoji = "🎁"
+        action_desc = f"**+{amount:,} vàng** đã được tặng cho {member.mention}"
+        color = 0x00FF7F
+        thumbnail = "https://cdn.discordapp.com/emojis/812499369077137428.gif"
+    else:
+        action_type = "⚖️ TRỪ VÀNG"
+        action_emoji = "📉"
+        action_desc = f"**{amount:,} vàng** đã được trừ từ {member.mention}"
+        color = 0xFF6B6B
+        thumbnail = "https://cdn.discordapp.com/emojis/765298986428850206.png"
+
+    # Create embed
+    embed = discord.Embed(
+        title=f"{action_emoji} {action_type}",
+        description="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                   f"🎪 **Thao tác bởi {ctx.author.display_name}**\n"
+                   f"{action_desc}\n"
+                   "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        color=color
+    )
+    embed.set_thumbnail(url=thumbnail)
+
+    embed.add_field(
+        name="👤 Người nhận",
+        value=f"```yaml\n{member.display_name}```",
+        inline=True
+    )
+
+    embed.add_field(
+        name="💫 Thay đổi",
+        value=f"```yaml\n{amount:+,} vàng```",
+        inline=True
+    )
+
+    embed.add_field(
+        name="💎 Tổng vàng",
+        value=f"```yaml\n{user_data['coins']:,} vàng```",
+        inline=True
+    )
+
+    embed.add_field(
+        name="📊 Chi tiết",
+        value=f"**Trước:** {old_coins:,} vàng\n"
+              f"**Sau:** {user_data['coins']:,} vàng",
+        inline=False
+    )
+
+    embed.set_footer(
+        text=f"🎪 Game Hub - Admin: {ctx.author.display_name}",
+        icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url
+    )
+
+    await ctx.send(embed=embed)
+
+    # Log to admin channel
+    log_embed = discord.Embed(
+        title="🎪 ADMIN ACTION - CASH GIVE",
+        description=f"**Admin:** {ctx.author.mention}\n"
+                   f"**Target:** {member.mention}\n"
+                   f"**Amount:** {amount:+,} vàng\n"
+                   f"**Old Balance:** {old_coins:,}\n"
+                   f"**New Balance:** {user_data['coins']:,}",
+        color=0xFFD700
+    )
+    log_embed.add_field(name="Channel", value=ctx.channel.mention, inline=True)
+    log_embed.add_field(name="Time", value=datetime.datetime.utcnow().strftime("%d/%m/%Y %H:%M:%S"), inline=True)
+    await log_activity(log_embed)
+
 # Help command
 @bot.command(name='help_bot', aliases=['commands'])
 async def help_command(ctx):
@@ -1023,6 +1185,7 @@ async def help_command(ctx):
               "👤 gprofile  : Xem thông tin cá nhân\n"
               "🏆 gleaderboard: Bảng xếp hạng server\n"
               "ℹ️ guserinfo : Chi tiết thành viên\n"
+              "💰 ggive     : Tặng vàng\n"
               "```",
         inline=False
     )
@@ -1116,8 +1279,7 @@ async def on_member_join(member):
         welcome_embed = discord.Embed(
             title="🎊 Welcome GameHub VN",
             description=f"🌟 **Chào mừng {member.mention} gia nhập GameHub!**\n"
-                       f"💰 **Quà tặng:** +{starter_cash} vàng khởi đầu\n"
-                       f"🎮 **Khám phá:** `!daily` `!guess` `!rps` `!trivia`",
+                       f"💰 **Quà tặng:** +{starter_cash} vàng khởi đầu\n",
             color=0xFF6B35
         )
         welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
@@ -1132,21 +1294,28 @@ async def on_member_join(member):
             inline=True
         )
 
-        if welcome_role:
-            welcome_embed.add_field(
-                name="🎭 Role", 
-                value=welcome_role.mention, 
-                inline=True
-            )
+        # Assuming WELCOME_ROLE is defined globally or passed somehow. For now, it's commented out.
+        # if WELCOME_ROLE: 
+        #     welcome_embed.add_field(
+        #         name="🎭 Role", 
+        #         value=welcome_role.mention, 
+        #         inline=True
+        #     )
 
         welcome_embed.set_footer(text="GameHub VN - Nơi giải trí số 1! 🎪")
 
         try:
-            # Send welcome message with role tag
-            message_content = f"{welcome_role.mention}" if welcome_role else ""
+            # Get the role to ping
+            ping_role = member.guild.get_role(1407879478075461753)
+            
+            # Send welcome message with role ping
+            message_content = ping_role.mention if ping_role else ""
             await welcome_channel.send(content=message_content, embed=welcome_embed)
         except discord.Forbidden:
             print(f"Không thể gửi tin nhắn chào mừng tới kênh {welcome_channel.name}")
+        except Exception as e:
+            print(f"An error occurred while sending welcome message: {e}")
+
 
 @bot.event
 async def on_member_remove(member):
@@ -1257,6 +1426,98 @@ async def on_message_delete(message):
     embed.add_field(name="Channel", value=message.channel.name, inline=True)
     embed.add_field(name="ID", value=message.id, inline=True)
     embed.set_thumbnail(url=message.author.avatar.url if message.author.avatar else message.author.default_avatar.url)
+    await log_activity(embed)
+
+@bot.event
+async def on_member_ban(guild, user):
+    """Log member bans"""
+    embed = discord.Embed(
+        title="🔨 Member Banned",
+        description=f"{user.mention} ({user.name}#{user.discriminator}) was banned",
+        color=0x8B0000
+    )
+    embed.add_field(name="ID", value=user.id, inline=True)
+    embed.add_field(name="Guild", value=guild.name, inline=True)
+    embed.set_thumbnail(url=user.avatar.url if user.avatar else user.default_avatar.url)
+    await log_activity(embed)
+
+@bot.event
+async def on_member_unban(guild, user):
+    """Log member unbans"""
+    embed = discord.Embed(
+        title="🔓 Member Unbanned",
+        description=f"{user.mention} ({user.name}#{user.discriminator}) was unbanned",
+        color=0x32CD32
+    )
+    embed.add_field(name="ID", value=user.id, inline=True)
+    embed.add_field(name="Guild", value=guild.name, inline=True)
+    embed.set_thumbnail(url=user.avatar.url if user.avatar else user.default_avatar.url)
+    await log_activity(embed)
+
+# Custom logging for moderation actions that Discord doesn't provide events for
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # Add XP for messages
+    await add_xp(message.author.id, 5)
+
+    # Update message count
+    data = load_data()
+    user_data = get_user_data(message.author.id)
+    user_data['messages'] += 1
+    data['users'][str(message.author.id)] = user_data
+    save_data(data)
+
+    await bot.process_commands(message)
+
+# Manual logging commands for moderation (can be called by other bots or manually)
+async def log_kick(member, reason=None, moderator=None):
+    """Manual function to log kicks"""
+    embed = discord.Embed(
+        title="👢 Member Kicked",
+        description=f"{member.mention} ({member.name}#{member.discriminator}) was kicked",
+        color=0xFF8C00
+    )
+    embed.add_field(name="ID", value=member.id, inline=True)
+    if moderator:
+        embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+    if reason:
+        embed.add_field(name="Reason", value=reason, inline=False)
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+    await log_activity(embed)
+
+async def log_mute(member, duration=None, reason=None, moderator=None):
+    """Manual function to log mutes"""
+    embed = discord.Embed(
+        title="🔇 Member Muted",
+        description=f"{member.mention} ({member.name}#{member.discriminator}) was muted",
+        color=0xFF4500
+    )
+    embed.add_field(name="ID", value=member.id, inline=True)
+    if moderator:
+        embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+    if duration:
+        embed.add_field(name="Duration", value=duration, inline=True)
+    if reason:
+        embed.add_field(name="Reason", value=reason, inline=False)
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+    await log_activity(embed)
+
+async def log_unmute(member, reason=None, moderator=None):
+    """Manual function to log unmutes"""
+    embed = discord.Embed(
+        title="🔊 Member Unmuted",
+        description=f"{member.mention} ({member.name}#{member.discriminator}) was unmuted",
+        color=0x32CD32
+    )
+    embed.add_field(name="ID", value=member.id, inline=True)
+    if moderator:
+        embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+    if reason:
+        embed.add_field(name="Reason", value=reason, inline=False)
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
     await log_activity(embed)
 
 
