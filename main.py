@@ -1009,9 +1009,9 @@ async def help_command(ctx):
     embed.add_field(
         name="🎮 **MINI GAMES**",
         value="```yaml\n"
-              "🎯 !guess    : Đoán số từ 1-100 (30s)\n"
-              "✂️ !rps      : Oẳn tù tì với bot\n"
-              "🧠 !trivia   : Trả lời câu hỏi kiến thức\n"
+              "🎯 gguess    : Đoán số từ 1-100 (30s)\n"
+              "✂️ grps      : Oẳn tù tì với bot\n"
+              "🧠 gtrivia   : Trả lời câu hỏi kiến thức\n"
               "```",
         inline=False
     )
@@ -1019,10 +1019,10 @@ async def help_command(ctx):
     embed.add_field(
         name="💎 **HỆ THỐNG THƯỞNG**",
         value="```yaml\n"
-              "🎁 !daily    : Nhận vàng miễn phí hàng ngày\n"
-              "👤 !profile  : Xem thông tin cá nhân\n"
-              "🏆 !leaderboard: Bảng xếp hạng server\n"
-              "ℹ️ !userinfo : Chi tiết thành viên\n"
+              "🎁 gdaily    : Nhận vàng miễn phí hàng ngày\n"
+              "👤 gprofile  : Xem thông tin cá nhân\n"
+              "🏆 gleaderboard: Bảng xếp hạng server\n"
+              "ℹ️ guserinfo : Chi tiết thành viên\n"
               "```",
         inline=False
     )
