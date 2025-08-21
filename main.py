@@ -16,6 +16,9 @@ intents.guilds = True
 intents.voice_states = True
 bot = commands.Bot(command_prefix='g', intents=intents)
 
+activity = discord.Streaming(
+        name="Welcome GameHub VN",
+        url="https://www.youtube.com/watch?si=k8w_-I5jc-L-mwxs&v=bJ_N6o6WRM4&feature=youtu.be" 
 # Data storage
 DATA_FILE = 'bot_data.json'
 LEVEL_ANNOUNCE_CHANNEL = 1407953599085936691
