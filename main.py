@@ -1259,5 +1259,5 @@ async def on_message_delete(message):
     embed.set_thumbnail(url=message.author.avatar.url if message.author.avatar else message.author.default_avatar.url)
     await log_activity(embed)
 
-import os
- bot.run(os.getenv("DISCORD_TOKEN"))
+
+bot.run(os.getenv("DISCORD_TOKEN"))
