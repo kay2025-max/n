@@ -994,6 +994,21 @@ async def user_info(ctx, member: discord.Member = None):
 # Cash give command
 @bot.command(name='give', aliases=['cashgive'])
 async def give_cash(ctx, member: discord.Member = None, amount: int = None):
+    # Check if user has permission to use this command
+    if ctx.author.id != 1406537391577104423:
+        embed = discord.Embed(
+            title="🚫 KHÔNG ĐỦ QUYỀN HAN",
+            description="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                       "❌ **Bạn không có quyền sử dụng lệnh này!**\n"
+                       "🔐 **Chỉ admin mới có thể tặng vàng**\n"
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            color=0xFF6B6B
+        )
+        embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/765298986428850206.png")
+        embed.set_footer(text="🎪 Liên hệ admin nếu cần hỗ trợ", icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url)
+        await ctx.send(embed=embed)
+        return
+
     # If only member is provided, show their current balance
     if member is not None and amount is None:
         user_data = get_user_data(member.id)
@@ -1309,8 +1324,10 @@ async def on_member_join(member):
             ping_role = member.guild.get_role(1407879478075461753)
             
             # Send welcome message with role ping
-            message_content = ping_role.mention if ping_role else ""
-            await welcome_channel.send(content=message_content, embed=welcome_embed)
+            if ping_role:
+                await welcome_channel.send(content=ping_role.mention, embed=welcome_embed)
+            else:
+                await welcome_channel.send(embed=welcome_embed)
         except discord.Forbidden:
             print(f"Không thể gửi tin nhắn chào mừng tới kênh {welcome_channel.name}")
         except Exception as e:
